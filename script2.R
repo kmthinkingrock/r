@@ -47,6 +47,10 @@ xxxxx<-merge(merge1, models.data.frame)
 
 nov10<-filter(revlog, str_detect(revlog$datestr, "2015-11-10"))
 
+nov10merged=merge(nov10, decks.data.frame, x.by="id", y.by="did")
+barplot<-ggplot(nov10merged, aes(x=abbr)) + geom_bar() +theme(axis.text.x=element_text(angle=30, hjust=1, vjust=1))
+
+
 ## date procesing - still fiddling with it
 select(filter(mutate(revlog, revtime = as.POSIXct(datestr, "UTC"), revday = strftime(revtime, "%F")), datestr < '2015-11-11'), revday, ease)
 
