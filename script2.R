@@ -26,7 +26,10 @@ models.data.frame <- data.frame(num.fields = model.field.counts, model.name = mo
 decks[names(decks)[lapply(decks, function(x) { is.matrix(x$terms) }) == TRUE]] <- NULL
 
 decksnames=unlist(lapply(decks, function(x) { x$name }))
-decks.data.frame<-data.frame(did = names(decksnames), name = decksnames, stringsAsFactors=FALSE)
+decks.data.frame<-data.frame(
+	did = names(decksnames), name = decksnames,
+	desc = unlist(lapply(decks, function(x) { x$desc })),
+ 	stringsAsFactors=FALSE)
 
 collection=list(models = models.data.frame, decks = decks.data.frame)
 
@@ -50,13 +53,18 @@ nov10<-filter(revlog, str_detect(revlog$datestr, "2015-11-10"))
 nov10merged=merge(nov10, decks.data.frame, x.by="id", y.by="did")
 barplot<-ggplot(nov10merged, aes(x=abbr)) + geom_bar() +theme(axis.text.x=element_text(angle=30, hjust=1, vjust=1))
 
-
 ## date procesing - still fiddling with it
-select(filter(mutate(revlog, revtime = as.POSIXct(datestr, "UTC"), revday = strftime(revtime, "%F")), datestr < '2015-11-11'), revday, ease)
+#select(filter(
+mutated=mutate(revlog, revtime = as.POSIXct(datestr, "UTC"), revday = strftime(revtime, "%F"))
+#, datestr < '2015-11-11'), revday, ease)
 
 ## experimentation with "abbreviate" to shorten deck names
 ## algorithm should be different
 decks.data.frame$abbr <- abbreviate(str_replace_all(decksnames, "::", " "), minlength=12, method="both")
+
+rpl<-str_replace(decks.data.frame$name, "^.*::", "")
+rpl[duplicated(rpl)] = abbreviate(decks.data.frame$name[duplicated(rpl)],minlength=8)
+decks.data.frame$short <- rpl
 
 #merge(revlog, decks.data.frame)
 
