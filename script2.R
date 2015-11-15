@@ -41,8 +41,7 @@ revlog<-tbl_df(dbGetQuery(worklist[["db"]], "select cast(a.cid as text) cid,
 dbDisconnect(worklist[["db"]])
 worklist[["db"]]<-NULL
 
-
-# from revlog!
+# from revlog! should be otherwise
 deckmodelcombos <- distinct(select(revlog, did, mid))
 
 merge1<-merge(deckmodelcombos,decks.data.frame)#,by.x="did",by.y="id")
@@ -72,4 +71,8 @@ decks.data.frame$short <- rpl
 
 #merge(decks.data.frame, 
 #print(as.data.frame(abbrs))
+
+barplot<-ggplot(filter(revlog, revtime >= '2014-10-01'), aes(x=revdaytime))
+barplot + stat_bin(binwidth=86400*2)
+
 
