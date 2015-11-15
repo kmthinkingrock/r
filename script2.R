@@ -54,7 +54,7 @@ barplot<-ggplot(nov10merged, aes(x=abbr)) + geom_bar() +theme(axis.text.x=elemen
 
 ## date procesing - still fiddling with it
 #select(filter(
-mutated=mutate(revlog, revtime = as.POSIXct(datestr, "UTC"), revday = strftime(revtime, "%F"))
+revlog=mutate(revlog, revtime = as.POSIXct(datestr, "UTC"), revday = strftime(revtime, "%F"), revday.posixct=as.POSIXct(revday))
 #, datestr < '2015-11-11'), revday, ease)
 
 ## experimentation with "abbreviate" to shorten deck names
@@ -65,14 +65,18 @@ rpl<-str_replace(decks.data.frame$name, "^.*::", "")
 rpl[duplicated(rpl)] = abbreviate(decks.data.frame$name[duplicated(rpl)],minlength=8)
 decks.data.frame$short <- rpl
 
-#merge(revlog, decks.data.frame)
+## merge abbreviations and short names of decks
+revlog=merge(revlog, decks.data.frame)
 
 #collection$decks$abbr = abbrs
 
 #merge(decks.data.frame, 
 #print(as.data.frame(abbrs))
 
-barplot<-ggplot(filter(revlog, revtime >= '2014-10-01'), aes(x=revdaytime))
-barplot + stat_bin(binwidth=86400*2)
 
+endDate = as.POSIXct(Sys.Date())
+beginDate = seq(endDate, by="-1 year", length.out=2)[2]
+period.review.log=filter(revlog, revtime >= beginDate & revtime <= endDate)
 
+barplot<-ggplot(period.review.log, aes(x=revday.posixct))
+plot<-barplot + stat_bin(binwidth=86400*2)
