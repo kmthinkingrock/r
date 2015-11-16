@@ -80,3 +80,10 @@ period.review.log=filter(revlog, revtime >= beginDate & revtime <= endDate)
 
 barplot<-ggplot(period.review.log, aes(x=revday.posixct))
 plot<-barplot + stat_bin(binwidth=86400*2)
+
+# kind of interesting plot
+ggplot(filter(revlog, revtime >= '2015-11-11'), aes(x=revtime,y=time,colour=ease))+geom_point(alpha=.3)
+
+ggplot(filter(mutate(revlog, easef = factor(ease)), revtime >= '2015-11-11 12:00' & revtime < '2015-11-12'), aes(x=revtime,y=time/1000,colour=easef))+geom_point(alpha=.3) + scale_color_manual(values=c("red", "purple", "green", "blue")) + scale_y_log10() + theme(legend.key = element_rect(fill = "#eeeeee")) + ylab("Seconds to Answer")+ xlab("Review Time") + annotation_logticks(sides="l")
+> 
+
