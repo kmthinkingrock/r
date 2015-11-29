@@ -1,7 +1,7 @@
 Sys.setenv(LANG = "en")
 
 collection.anki2.path <-
-	"c:\\users\\kay\\documents\\anki\\user 1\\collection.anki2"
+	
 
 ## keep this for future reference, peut-etre
 script.dir <- dirname(sys.frame(1)$ofile)
@@ -9,7 +9,8 @@ script.dir <- dirname(sys.frame(1)$ofile)
 source(paste(script.dir, "loadlibs.R", sep="/"))
 source(paste(script.dir, "r-anki-lib.R", sep="/"))
 
-worklist <= list(db = connectAnkiCollection(collection.anki2.path))
+worklist <- list(db = connectAnkiCollection("c:\\users\\kay\\documents\\anki\\user 1\\collection.anki2"))#collection.anki2.path))
+print(worklist[["db"]])
 
 ankiDb.table.col <- dbReadTable(worklist[["db"]], "col", NULL, TRUE, "*")
 decks <- fromJSON(ankiDb.table.col$decks)
@@ -89,3 +90,6 @@ plot <- barplot + stat_bin(binwidth=86400*2)
 ggplot(filter(revlog, revtime >= '2015-11-11'), aes(x=revtime,y=time,colour=ease))+geom_point(alpha=.3)
 
 ggplot(filter(mutate(revlog, easef = factor(ease)), revtime >= '2015-11-11 12:00' & revtime < '2015-11-12'), aes(x=revtime,y=time/1000,colour=easef))+geom_point(alpha=.3) + scale_color_manual(values=c("red", "purple", "green", "blue")) + scale_y_log10() + theme(legend.key = element_rect(fill = "#eeeeee")) + ylab("Seconds to Answer")+ xlab("Review Time") + annotation_logticks(sides="l")
+
+deck.patterns <- c("^French::")
+#match(deck.patterns, 
