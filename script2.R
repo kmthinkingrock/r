@@ -37,7 +37,10 @@ decks <- fromJSON(ankiDb.table.col$decks)
 models <- fromJSON(ankiDb.table.col$models)
 
 notes.db.table <- dbReadTable(worklist[["db"]],
-			      "notes", NULL, T, "id did, mid, mod, tags, sfld")
+			      "notes", NULL, T, "cast(id as text) did, mid, mod, tags, sfld")
+cards.db.table <- dbReadTable ( worklist[["db"]], "cards", NULL, T, "cast(id as text) cid, nid, cast(did as text) did, ord, mod, usn, type, queue,
+      due, ivl, factor, reps, lapses, left, odue, odid"
+    )
 
 model.names		<- unlist(lapply(models, function(x) { x$name }))
 model.ids		<- unlist(lapply(models, function(x) { x$id }))
@@ -55,6 +58,14 @@ decks.data.frame <- data.frame(
 	did = names(decksnames), name = decksnames,
 	desc = unlist(lapply(decks, function(x) { x$desc })),
  	stringsAsFactors=FALSE)
+
+## experimentation with "abbreviate" to shorten deck names
+## algorithm should be different
+decks.data.frame$abbr <- abbreviate(str_replace_all(decksnames, "::", " "), minlength=12, method="both")
+
+rpl <- str_replace(decks.data.frame$name, "^.*::", "")
+rpl[duplicated(rpl)] <- abbreviate(decks.data.frame$name[duplicated(rpl)],minlength=8)
+decks.data.frame$short <- rpl
 
 collection <- list(models = models.data.frame, decks = decks.data.frame)
 
@@ -75,6 +86,19 @@ revlog <- tbl_df(dbGetQuery(worklist[["db"]], "select cast(a.cid as text) cid,
 dbDisconnect(worklist[["db"]])
 worklist[["db"]] <- NULL
 
+svg("decks.svg", width=8, height=6)
+print(ggplot(decks.data.frame, aes(y=short, x=0,label=name,xmin=0,xmax=1)) + geom_text(aes(hjust=0)) + scale_x_continuous("Deck Name") + theme(panel.grid = element_blank(), axis.ticks.x=element_blank(), axis.text.x=element_blank()))
+#print(ggplot(decks.data.frame, aes(y=short, x="",label=name,xmin=0,xmax=0)) + geom_text(aes(hjust=1)) + scale_x_discrete("Deck Name"))
+dev.off()
+
+c=tbl_df(cards.db.table)
+c2=merge(c, decks.data.frame)
+c2$did = factor(c$did)
+svg("cardcountbydeck.svg", width=6, height=4)
+print(ggplot(c2, aes(x=short)) + geom_bar() + theme(axis.text.x=element_text(angle=30, hjust=1, vjust=1)) + ylab("Card Count") + xlab("Deck") + ggtitle("Card Count by Anki Deck"))
+dev.off()
+
+
 # from revlog! should be otherwise
 deckmodelcombos <- distinct(select(revlog, did, mid))
 
@@ -92,13 +116,6 @@ barplot <- ggplot(nov10merged, aes(x=abbr)) + geom_bar() +theme(axis.text.x=elem
 revlog <- mutate(revlog, revtime = as.POSIXct(datestr, "UTC"), revday = strftime(revtime, "%F"), revday.posixct=as.POSIXct(revday))
 #, datestr < '2015-11-11'), revday, ease)
 
-## experimentation with "abbreviate" to shorten deck names
-## algorithm should be different
-decks.data.frame$abbr <- abbreviate(str_replace_all(decksnames, "::", " "), minlength=12, method="both")
-
-rpl <- str_replace(decks.data.frame$name, "^.*::", "")
-rpl[duplicated(rpl)] <- abbreviate(decks.data.frame$name[duplicated(rpl)],minlength=8)
-decks.data.frame$short <- rpl
 
 ## merge abbreviations and short names of decks
 revlog <- merge(revlog, decks.data.frame)
