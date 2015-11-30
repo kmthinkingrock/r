@@ -1,18 +1,38 @@
 Sys.setenv(LANG = "en")
-
-collection.anki2.path <-
-	
+##
+## Variable list
+##
+## script.dir			relative or absolute path to scripts
+## collection.anki2.path	Path to collection.anki2 SQLite database
+## worklist			a list containing "work" variables
+## 				right now just "db"
+## ankiDb.table.col		the "col" table
+## decks			col.decks parsed JSON
+## models			col.models parsed JSON
+## notes.db.table		contents of "notes" taable
+## model.names			names of models
+## model.ids			ids of models
+## models.field.counts		model field counts
+## models.data.frame		data frame representing all models
 
 ## keep this for future reference, peut-etre
 script.dir <- dirname(sys.frame(1)$ofile)
 
 source(paste(script.dir, "loadlibs.R", sep="/"))
 source(paste(script.dir, "r-anki-lib.R", sep="/"))
+source(paste(script.dir, "localconf.R", sep="/"))
 
-worklist <- list(db = connectAnkiCollection("c:\\users\\kay\\documents\\anki\\user 1\\collection.anki2"))#collection.anki2.path))
+if(!file.exists(collection.anki2.path))
+{
+    stop(paste("Anki2 Collection file does not exist (",
+         collection.anki2.path, ")"))
+}
+
+worklist <- list(db = connectAnkiCollection(collection.anki2.path))
 print(worklist[["db"]])
 
 ankiDb.table.col <- dbReadTable(worklist[["db"]], "col", NULL, TRUE, "*")
+
 decks <- fromJSON(ankiDb.table.col$decks)
 models <- fromJSON(ankiDb.table.col$models)
 
@@ -41,8 +61,17 @@ collection <- list(models = models.data.frame, decks = decks.data.frame)
 revlog <- tbl_df(dbGetQuery(worklist[["db"]], "select cast(a.cid as text) cid,
 		       cast(b.did as text) did,
 		       cast(b.nid as text) nid,
-		       cast(c.mid as text) mid, a.ease, a.ivl rivl, a.lastivl, a.factor rfactor, a.[time], a.type rtype, b.type ctype, b.queue, b.due, b.ivl civl, b.factor cfactor, b.reps, b.lapses, b.[left], b.odue, a.id / 1000 as epochsecs, datetime(a.id / 1000, 'unixepoch') as datestr from revlog a join cards b on b.id = a.cid join notes c on c.id = b.nid"))
+		       cast(c.mid as text) mid,
+		       a.ease, a.ivl rivl, a.lastivl, a.factor rfactor,
+		       a.[time], a.type rtype, b.type ctype,
+		       b.queue, b.due, b.ivl civl, b.factor cfactor,
+		       b.reps, b.lapses, b.[left], b.odue,
+		       a.id / 1000 as epochsecs,
+		       datetime(a.id / 1000, 'unixepoch') as datestr
+		       from revlog a join cards b on b.id = a.cid
+		       join notes c on c.id = b.nid"))
 
+## We're done with DB
 dbDisconnect(worklist[["db"]])
 worklist[["db"]] <- NULL
 
@@ -52,6 +81,7 @@ deckmodelcombos <- distinct(select(revlog, did, mid))
 merge1 <- merge(deckmodelcombos,decks.data.frame)#,by.x="did",by.y="id")
 xxxxx <- merge(merge1, models.data.frame)
 
+#derp
 nov10 <- filter(revlog, str_detect(revlog$datestr, "2015-11-10"))
 
 nov10merged <- merge(nov10, decks.data.frame, x.by="id", y.by="did")
@@ -59,7 +89,7 @@ barplot <- ggplot(nov10merged, aes(x=abbr)) + geom_bar() +theme(axis.text.x=elem
 
 ## date procesing - still fiddling with it
 #select(filter(
-revlog=mutate(revlog, revtime = as.POSIXct(datestr, "UTC"), revday = strftime(revtime, "%F"), revday.posixct=as.POSIXct(revday))
+revlog <- mutate(revlog, revtime = as.POSIXct(datestr, "UTC"), revday = strftime(revtime, "%F"), revday.posixct=as.POSIXct(revday))
 #, datestr < '2015-11-11'), revday, ease)
 
 ## experimentation with "abbreviate" to shorten deck names
@@ -73,16 +103,18 @@ decks.data.frame$short <- rpl
 ## merge abbreviations and short names of decks
 revlog <- merge(revlog, decks.data.frame)
 
+# uncertain gibberish
 #collection$decks$abbr = abbrs
 
 #merge(decks.data.frame, 
 #print(as.data.frame(abbrs))
 
-
+# omg variables
 endDate <- as.POSIXct(Sys.Date())
 beginDate <- seq(endDate, by="-1 year", length.out=2)[2]
 period.review.log <- filter(revlog, revtime >= beginDate & revtime <= endDate)
 
+# a plot
 barplot <- ggplot(period.review.log, aes(x=revday.posixct))
 plot <- barplot + stat_bin(binwidth=86400*2)
 
@@ -92,4 +124,5 @@ ggplot(filter(revlog, revtime >= '2015-11-11'), aes(x=revtime,y=time,colour=ease
 ggplot(filter(mutate(revlog, easef = factor(ease)), revtime >= '2015-11-11 12:00' & revtime < '2015-11-12'), aes(x=revtime,y=time/1000,colour=easef))+geom_point(alpha=.3) + scale_color_manual(values=c("red", "purple", "green", "blue")) + scale_y_log10() + theme(legend.key = element_rect(fill = "#eeeeee")) + ylab("Seconds to Answer")+ xlab("Review Time") + annotation_logticks(sides="l")
 
 deck.patterns <- c("^French::")
+# starting an attempt to filter decks
 #match(deck.patterns, 
