@@ -100,7 +100,8 @@ c=tbl_df(cards.db.table)
 c2=merge(c, decks.data.frame)
 c2$did = factor(c$did)
 svg("cardcountbydeck.svg", width=6, height=4)
-print(ggplot(c2, aes(x=short, fill=t)) + geom_bar() + theme(axis.text.x=element_text(angle=30, hjust=1, vjust=1)) + ylab("Card Count") + xlab("Deck") + ggtitle("Card Count by Anki Deck")) + scale_color_manual(c("dark green", "yellow", "green", "blue"))
+print(ggplot(c2, aes(x=short, fill=t)) + geom_bar() + theme(axis.text.x=element_text(angle=30, hjust=1, vjust=1)) + ylab("Card Count") + xlab("Deck") + ggtitle("Card Count by Anki Deck") + scale_fill_manual(values = c("dark green", "#3366cc", "yellow", "light green")))
+
 dev.off()
 
 # how to determine status of cards
