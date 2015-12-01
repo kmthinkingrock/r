@@ -38,9 +38,14 @@ models <- fromJSON(ankiDb.table.col$models)
 
 notes.db.table <- dbReadTable(worklist[["db"]],
 			      "notes", NULL, T, "cast(id as text) did, mid, mod, tags, sfld")
-cards.db.table <- dbReadTable ( worklist[["db"]], "cards", NULL, T, "cast(id as text) cid, nid, cast(did as text) did, ord, mod, usn, type, queue,
-      due, ivl, factor, reps, lapses, left, odue, odid"
-    )
+cards.db.table <- tbl_df(dbReadTable (
+	       worklist[["db"]], "cards", NULL, T,
+	       "cast(id as text) cid, nid, cast(did as text) did, ord,
+	       mod, usn, type, queue,
+	             due, ivl, factor, reps, lapses, left, odue, odid"
+))
+
+cards.db.table = mutate(cards.db.table, t=ifelse(queue == 2 & ivl >= 21, "mature", ifelse((queue == 1 | queue == 3) | (queue == 2 & ivl < 21), "young", ifelse(queue == 0, "new", ifelse(queue < 0, "suspended", NA)))))
 
 model.names		<- unlist(lapply(models, function(x) { x$name }))
 model.ids		<- unlist(lapply(models, function(x) { x$id }))
@@ -95,8 +100,16 @@ c=tbl_df(cards.db.table)
 c2=merge(c, decks.data.frame)
 c2$did = factor(c$did)
 svg("cardcountbydeck.svg", width=6, height=4)
-print(ggplot(c2, aes(x=short)) + geom_bar() + theme(axis.text.x=element_text(angle=30, hjust=1, vjust=1)) + ylab("Card Count") + xlab("Deck") + ggtitle("Card Count by Anki Deck"))
+print(ggplot(c2, aes(x=short, fill=t)) + geom_bar() + theme(axis.text.x=element_text(angle=30, hjust=1, vjust=1)) + ylab("Card Count") + xlab("Deck") + ggtitle("Card Count by Anki Deck")) + scale_color_manual(c("dark green", "yellow", "green", "blue"))
 dev.off()
+
+# how to determine status of cards
+#select
+#sum(case when queue=2 and ivl >= 21 then 1 else 0 end), -- mtr
+#sum(case when queue in (1,3) or (queue=2 and ivl < 21) then 1 else 0 end), -- yng/lrn
+#sum(case when queue=0 then 1 else 0 end), -- new
+#sum(case when queue<0 then 1 else 0 end) -- susp
+#from cards where did in %s""" % self._limit())
 
 
 # from revlog! should be otherwise
