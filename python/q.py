@@ -4,7 +4,12 @@ import json
 import csv
 import cStringIO
 import xlsxwriter
+import os
 
+rootPath = os.environ['EXTERNAL_STORAGE']
+workPath = rootPath + '/work'
+print workPath
+quit()
 #colPath = "/sdcard/collection.anki2"
 colPath = "/home/kay/collection.anki2"
 #outdir = '/sdcard/work/'
