@@ -8,8 +8,8 @@ import os
 
 extStKey = 'EXTERNAL_STORAGE'
 if os.environ.has_key(extStKey):
-  rootPath = os.environ[]
-else
+  rootPath = os.environ[extSdKey]
+else:
   rootPath = '.'
   
 workPath = rootPath + '/work/'
