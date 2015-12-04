@@ -6,14 +6,18 @@ import cStringIO
 import xlsxwriter
 import os
 
-rootPath = os.environ['EXTERNAL_STORAGE']
-workPath = rootPath + '/work'
-print workPath
-quit()
+extStKey = 'EXTERNAL_STORAGE'
+if os.environ.has_key(extStKey):
+  rootPath = os.environ[]
+else
+  rootPath = '.'
+  
+workPath = rootPath + '/work/'
+
 #colPath = "/sdcard/collection.anki2"
-colPath = "/home/kay/collection.anki2"
+colPath = workPath + "collection.anki2"
 #outdir = '/sdcard/work/'
-outPath = "./out/"
+outPath = workPath
 
 class UnicodeWriter:
   """ A CSV writer which will write rows to CSV file "f", which is encoded in the given encoding. """
