@@ -15,7 +15,8 @@ Sys.setenv(LANG = "en")
 ## models.field.counts		model field counts
 ## models.data.frame		data frame representing all models
 
-## keep this for future reference, peut-etre
+## keep this for future reference
+## this won't work unless the script is loaded via the "source" function.
 script.dir <- dirname(sys.frame(1)$ofile)
 
 source(paste(script.dir, "loadlibs.R", sep="/"))
@@ -40,12 +41,14 @@ notes.db.table <- dbReadTable(worklist[["db"]],
 			      "notes", NULL, T, "cast(id as text) did, mid, mod, tags, sfld")
 cards.db.table <- tbl_df(dbReadTable (
 	       worklist[["db"]], "cards", NULL, T,
-	       "cast(id as text) cid, nid, cast(did as text) did, ord,
+	       "cast(id as text) cid, cast(nid as text) nid, cast(did as text) did, ord,
 	       mod, usn, type, queue,
 	             due, ivl, factor, reps, lapses, left, odue, odid"
 ))
 
+# t should probably be "Status"
 cards.db.table = mutate(cards.db.table, t=ifelse(queue == 2 & ivl >= 21, "mature", ifelse((queue == 1 | queue == 3) | (queue == 2 & ivl < 21), "young", ifelse(queue == 0, "new", ifelse(queue < 0, "suspended", NA)))))
+cards.db.table$t = factor(cards.db.table$t)
 
 model.names		<- unlist(lapply(models, function(x) { x$name }))
 model.ids		<- unlist(lapply(models, function(x) { x$id }))
@@ -71,6 +74,7 @@ decks.data.frame$abbr <- abbreviate(str_replace_all(decksnames, "::", " "), minl
 rpl <- str_replace(decks.data.frame$name, "^.*::", "")
 rpl[duplicated(rpl)] <- abbreviate(decks.data.frame$name[duplicated(rpl)],minlength=8)
 decks.data.frame$short <- rpl
+decks.data.frame$short = factor(decks.data.frame$short)
 
 collection <- list(models = models.data.frame, decks = decks.data.frame)
 
@@ -96,11 +100,28 @@ print(ggplot(decks.data.frame, aes(y=short, x=0,label=name,xmin=0,xmax=1)) + geo
 #print(ggplot(decks.data.frame, aes(y=short, x="",label=name,xmin=0,xmax=0)) + geom_text(aes(hjust=1)) + scale_x_discrete("Deck Name"))
 dev.off()
 
-c=tbl_df(cards.db.table)
-c2=merge(c, decks.data.frame)
-c2$did = factor(c$did)
+cards.db.table=tbl_df(cards.db.table)
+cards.db.table=merge(cards.db.table, decks.data.frame)
+cards.db.table$did = factor(cards.db.table$did)
+
+today<-Sys.Date()
+crt<-ankiDb.table.col$crt
+createDate<-strptime(crt, "%s")
+
+## createDate arithmetic sorta has issues with daylight savings, i believe
+due=mutate(select(filter(cards.db.table, queue == 2), did, type, queue, due, t, short), duedate = createDate + due * 86400)
+
+svg("duecards.svg", width=12, height=4)
+print(ggplot(due, aes(x=duedate,fill=short)) + geom_bar(width=1) + stat_bin(binwidth=7 * 86400))
+dev.off()
+
+## find all cards due before tomorrow (this only works because our due
+## times end up being at 11pm. we need better logic to work in the
+## cases we want
+f=filter(due, duedate < '2016-02-24')
+
 svg("cardcountbydeck.svg", width=6, height=4)
-print(ggplot(c2, aes(x=short, fill=t)) + geom_bar() + theme(axis.text.x=element_text(angle=30, hjust=1, vjust=1)) + ylab("Card Count") + xlab("Deck") + ggtitle("Card Count by Anki Deck") + scale_fill_manual(values = c("dark green", "#3366cc", "yellow", "light green")))
+print(ggplot(cards.db.table, aes(x=short, fill=t)) + geom_bar() + theme(axis.text.x=element_text(angle=30, hjust=1, vjust=1)) + ylab("Card Count") + xlab("Deck") + ggtitle("Card Count by Anki Deck") + scale_fill_manual(values = c("dark green", "#3366cc", "yellow", "light green")))
 
 dev.off()
 
